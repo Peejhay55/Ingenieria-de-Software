@@ -31,13 +31,36 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "profileId is required" }, { status: 400 });
   }
 
-  const profile = await prisma.profile.findUnique({
+  let profile = await prisma.profile.findUnique({
     where: { id: profileId },
     include: { preference: true },
   });
-
+  
+  if (!profile) {
+    return NextResponse.json({ error: "profile not found" }, { status: 404 });
+  }
+  
+ 
+  if (!profile.preference) {
+    await prisma.preference.create({
+      data: {
+        profileId: profile.id,
+        modality: "remote",
+        salaryExpect: 0,
+        mustHave: [],
+        niceToHave: [],
+      },
+    });
+  
+   
+    profile = await prisma.profile.findUnique({
+      where: { id: profileId },
+      include: { preference: true },
+    });
+  }
+  
   if (!profile || !profile.preference) {
-    return NextResponse.json({ error: "profile not found or missing preference" }, { status: 404 });
+    return NextResponse.json({ error: "preference could not be created" }, { status: 500 });
   }
 
   const jobs = await prisma.job.findMany();
@@ -57,8 +80,7 @@ export async function GET(req: Request) {
       const skillsRatio = candidateSkills.length === 0 ? 0 : matchedSkills / candidateSkills.length;
       const skillsScore = Math.round(skillsRatio * 60);
 
-      // 2) Must-have (si el candidato puso mustHave y la vacante no cumple, penaliza fuerte)
-      // En este MVP usaremos mustHave para modalidad y/o palabras clave simples.
+      
       let mustHavePenalty = 0;
       for (const mh of mustHave) {
         const ok =
