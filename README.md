@@ -1,8 +1,8 @@
 Portal web con perfil 100%
 Por:
 Santiago Salazar Gilchrist
-Pablo José
-Juan
+Pablo José Benitez
+Juan Antonio Buendia
 ---
 Requisitos para correr localmente:
 
