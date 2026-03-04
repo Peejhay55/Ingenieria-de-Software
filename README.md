@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Portal web con perfil 100%
+Por:
+Santiago Salazar Gilchrist
+Pablo José
+Juan
+---
+Requisitos para correr localmente:
 
-## Getting Started
+Instalar en el computador:
 
-First, run the development server:
+- Node.js (v18 o superior)
+- Docker Desktop
+- Git
+Verificar instalación:
 
-```bash
+node -v
+npm -v
+docker -v
+
+
+---
+Pasos para correr localmente:
+
+# 1. Clonar el repositorio
+
+git clone https://github.com/Peejhay55/Ingenieria-de-Software.git
+
+cd Ingenieria-de-Software
+git checkout MVP
+
+---
+# 2. Instalar dependencias
+
+npm install
+---
+
+# 3. Crear archivo de variables de entorno
+
+Crear un archivo `.env` en la raíz del proyecto con este contenido:
+
+DATABASE_URL="postgresql://pm_user:pm_pass@localhost:5432/profile_manager?schema=public"
+(Hay un env.example ya subido que lo tiene, solo es cambiarlo a .env)
+
+---
+
+# 4. Iniciar la base de datos
+
+docker compose up -d
+
+---
+
+# 5. Crear las tablas de la base de datos
+
+npx prisma migrate dev
+
+---
+
+# 6. Insertar vacantes de prueba
+
+npx ts-node prisma/seed.ts
+
+---
+
+# 7. Ejecutar la aplicación
+
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+# 8. Abrir la aplicación
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Ir a:
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+http://localhost:3000/mvp
