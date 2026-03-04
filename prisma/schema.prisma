@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ApplicationStatus {
+  APPLIED
+  IN_REVIEW
+  INTERVIEW
+  REJECTED
+}
+
+model Profile {
+  id         String   @id @default(cuid())
+  fullName   String
+  email      String   @unique
+  location   String
+  targetRole String
+  yearsExp   Int
+  skills     String[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  preference   Preference?
+  applications Application[]
+}
+
+model Preference {
+  id           String   @id @default(cuid())
+  profileId    String   @unique
+  modality     String
+  salaryExpect Int
+  mustHave     String[]
+  niceToHave   String[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model Job {
+  id        String   @id @default(cuid())
+  title     String
+  company   String
+  location  String
+  modality  String
+  salaryMin Int
+  salaryMax Int
+  skills    String[]
+  createdAt DateTime @default(now())
+
+  applications Application[]
+}
+
+model Application {
+  id        String            @id @default(cuid())
+  profileId String
+  jobId     String
+  status    ApplicationStatus @default(APPLIED)
+  score     Int
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  job     Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, jobId])
+}

@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: profile_manager_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pm_user
+      POSTGRES_PASSWORD: pm_pass
+      POSTGRES_DB: profile_manager
+    ports:
+      - "5432:5432"
+    volumes:
+      - pm_db_data:/var/lib/postgresql/data
+
+volumes:
+  pm_db_data:
