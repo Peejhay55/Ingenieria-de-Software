@@ -3,6 +3,68 @@ Por:
 Santiago Salazar Gilchrist
 Pablo José Benitez
 Juan Antonio Buendia
+
+---
+
+## Estructura de carpetas del proyecto
+
+```
+Ingenieria-de-Software/
+├── app/                            # App Router de Next.js (páginas y API)
+│   ├── api/                        # Endpoints del backend (API routes)
+│   │   ├── apply/
+│   │   │   └── route.ts            # POST aplicar a vacante
+│   │   ├── auth/
+│   │   │   ├── login/
+│   │   │   │   └── route.ts        # POST login de usuario
+│   │   │   └── register/
+│   │   │       └── route.ts        # POST registro de usuario
+│   │   ├── health/
+│   │   │   └── route.ts            # GET healthcheck
+│   │   ├── jobs/
+│   │   │   └── route.ts            # GET listar vacantes
+│   │   ├── login/
+│   │   │   └── page.tsx            # (página login dentro de api — legacy)
+│   │   ├── profile/
+│   │   │   └── route.ts            # GET/POST perfiles
+│   │   ├── recomendaciones/
+│   │   │   └── route.ts            # GET recomendaciones
+│   │   └── register/
+│   │       └── page.tsx            # (página register dentro de api — legacy)
+│   ├── login/
+│   │   └── page.tsx                # Página de inicio de sesión
+│   ├── mvp/
+│   │   └── page.tsx                # Página principal del MVP
+│   ├── register/
+│   │   └── page.tsx                # Página de registro de usuario
+│   ├── favicon.ico
+│   ├── globals.css                 # Estilos globales (Tailwind CSS)
+│   ├── layout.tsx                  # Layout raíz de la aplicación
+│   └── page.tsx                    # Página de inicio (landing)
+├── lib/
+│   └── prisma.ts                   # Cliente Prisma (singleton)
+├── prisma/
+│   ├── migrations/
+│   │   ├── 20260303232808_init/
+│   │   │   └── migration.sql       # Migración inicial (perfiles, vacantes, etc.)
+│   │   └── 20260415002026_add_user_model/
+│   │       └── migration.sql       # Migración: modelo User
+│   ├── schema.prisma               # Esquema de la base de datos
+│   └── seed.ts                     # Script de datos de prueba
+├── public/                         # Archivos estáticos
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── next.svg
+│   ├── vercel.svg
+│   └── window.svg
+├── docker-compose.yml              # PostgreSQL en Docker
+├── eslint.config.mjs               # Configuración de ESLint
+├── next.config.ts                  # Configuración de Next.js
+├── package.json                    # Dependencias y scripts
+├── postcss.config.mjs              # Configuración de PostCSS
+└── tsconfig.json                   # Configuración de TypeScript
+```
+
 ---
 Requisitos para correr localmente:
 
