@@ -67,11 +67,17 @@ export default function MVPPage() {
 
   //función de envío
   const handleSubmitProfile = async () => {
+    if (!sessionUserId) {
+      setToast({ message: "Debes iniciar sesión antes de crear un perfil.", variant: "error" });
+      return;
+    }
+
     try {
       const res = await fetch("/api/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          userId: sessionUserId,
           ...formData,
           skills: formData.skills.split(",").map(s => s.trim().toLowerCase()).filter(Boolean),
           preference: {
@@ -91,23 +97,23 @@ export default function MVPPage() {
         setToast({ message: `Error: ${err.error}`, variant: "error" });
       }
     } catch (error) {
-      setToast({ message: "Error de conexión.", variant: "error" });
-    }
+                    borderRadius: 10,
+                    padding: "10px",
   };
 
-  //renderiza el formulario en el JSX (antes de <section> de Perfiles)
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [jobs, setJobs] = useState<Job[]>([]);
+                    gap: 12,
+                    alignItems: "center",
+                    fontSize: 13,
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
-  const [recs, setRecs] = useState<Recommendation[]>([]);
-  const [recsLoading, setRecsLoading] = useState(false);
+                    <strong>{p.fullName}</strong>
+                    <div style={{ color: "#888", marginTop: 4 }}>
 
 
   useEffect(() => {
     async function load() {
-      try {
+                  <div style={{ color: "#9ca3af", fontWeight: 700, whiteSpace: "nowrap" }}>
         setLoading(true);
         setError("");
 
@@ -378,6 +384,9 @@ const savedVacanciesStorageKey = "jobmaxxing_saved_vacancies";
 export default function MVPPage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [showAllJobs, setShowAllJobs] = useState(false);
+  const [footerProfilesPage, setFooterProfilesPage] = useState(0);
+  const [footerJobsPage, setFooterJobsPage] = useState(0);
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
@@ -452,6 +461,20 @@ export default function MVPPage() {
 
   const isJobSaved = (jobId: string) => savedJobs.some((job) => job.id === jobId);
 
+  const footerProfilesPageSize = 4;
+  const footerProfilesPageCount = Math.max(1, Math.ceil(profiles.length / footerProfilesPageSize));
+  const footerVisibleProfiles = profiles.slice(
+    footerProfilesPage * footerProfilesPageSize,
+    footerProfilesPage * footerProfilesPageSize + footerProfilesPageSize,
+  );
+
+  const footerJobsPageSize = 4;
+  const footerJobsPageCount = Math.max(1, Math.ceil(jobs.length / footerJobsPageSize));
+  const footerVisibleJobs = jobs.slice(
+    footerJobsPage * footerJobsPageSize,
+    footerJobsPage * footerJobsPageSize + footerJobsPageSize,
+  );
+
   const toggleSavedJob = (job: Job) => {
     setSavedJobs((currentJobs) => {
       if (currentJobs.some((savedJob) => savedJob.id === job.id)) {
@@ -463,6 +486,9 @@ export default function MVPPage() {
       return [job, ...currentJobs];
     });
   };
+
+  const visibleJobs = showAllJobs ? jobs : jobs.slice(0, 5);
+  const hasMoreJobs = jobs.length > 5;
 
   useEffect(() => {
     async function load() {
@@ -666,7 +692,7 @@ export default function MVPPage() {
             {jobs.length === 0 ? (
               <p style={{ color: "#9ca3af" }}>No hay vacantes para mostrar.</p>
             ) : (
-              jobs.map((job) => {
+              visibleJobs.map((job) => {
                 const saved = isJobSaved(job.id);
 
                 return (
@@ -723,6 +749,26 @@ export default function MVPPage() {
               })
             )}
           </div>
+
+          {hasMoreJobs && (
+            <div style={{ marginTop: 16, display: "flex", justifyContent: "center" }}>
+              <button
+                type="button"
+                onClick={() => setShowAllJobs((currentValue) => !currentValue)}
+                style={{
+                  padding: "12px 18px",
+                  borderRadius: 999,
+                  border: "1px solid #3b82f6",
+                  backgroundColor: showAllJobs ? "#111827" : "#3b82f6",
+                  color: "#fff",
+                  cursor: "pointer",
+                  fontWeight: 700,
+                }}
+              >
+                {showAllJobs ? "Colapsar" : "Mostrar más"}
+              </button>
+            </div>
+          )}
         </section>
 
         {/* DATA INSPECTOR (FOOTER) */}
@@ -730,17 +776,69 @@ export default function MVPPage() {
           <section>
             <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, color: "#3b82f6" }}>Database: Perfiles</h3>
             <div style={{ display: "grid", gap: 10 }}>
-              {profiles.map(p => (
+              {footerVisibleProfiles.map(p => (
                 <div key={p.id} style={{ padding: "10px", borderRadius: 10, backgroundColor: "#141414", fontSize: 13, border: "1px solid #222" }}>
                   <strong>{p.fullName}</strong> • <span style={{ color: "#888" }}>{p.skills.slice(0, 3).join(", ")}...</span>
                 </div>
               ))}
             </div>
+
+            {profiles.length > footerProfilesPageSize && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 14 }}>
+                <button
+                  type="button"
+                  onClick={() => setFooterProfilesPage((currentPage) => Math.max(0, currentPage - 1))}
+                  disabled={footerProfilesPage === 0}
+                  aria-label="Perfiles anteriores"
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 999,
+                    border: "1px solid #333",
+                    backgroundColor: footerProfilesPage === 0 ? "#0f172a" : "#111827",
+                    color: footerProfilesPage === 0 ? "#475569" : "#fff",
+                    cursor: footerProfilesPage === 0 ? "not-allowed" : "pointer",
+                    display: "grid",
+                    placeItems: "center",
+                    fontSize: 18,
+                    fontWeight: 800,
+                  }}
+                >
+                  ←
+                </button>
+
+                <div style={{ color: "#9ca3af", fontSize: 12, fontWeight: 600 }}>
+                  {footerProfilesPage + 1} / {footerProfilesPageCount}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setFooterProfilesPage((currentPage) => Math.min(footerProfilesPageCount - 1, currentPage + 1))}
+                  disabled={footerProfilesPage >= footerProfilesPageCount - 1}
+                  aria-label="Siguientes perfiles"
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 999,
+                    border: "1px solid #333",
+                    backgroundColor: footerProfilesPage >= footerProfilesPageCount - 1 ? "#0f172a" : "#111827",
+                    color: footerProfilesPage >= footerProfilesPageCount - 1 ? "#475569" : "#fff",
+                    cursor: footerProfilesPage >= footerProfilesPageCount - 1 ? "not-allowed" : "pointer",
+                    display: "grid",
+                    placeItems: "center",
+                    fontSize: 18,
+                    fontWeight: 800,
+                  }}
+                >
+                  →
+                </button>
+              </div>
+            )}
           </section>
           <section>
             <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, color: "#3b82f6" }}>Database: Vacantes</h3>
-            <div style={{ display: "grid", gap: 10 }}>
-              {jobs.map(j => (
+              <div style={{ display: "grid", gap: 10 }}>
+                {footerVisibleJobs.map(j => (
                 <div key={j.id} style={{ padding: "10px", borderRadius: 10, backgroundColor: "#141414", fontSize: 13, border: "1px solid #222", display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
                   <div>
                     <strong>{j.title}</strong> • <span style={{ color: "#888" }}>{j.company}</span>
@@ -770,6 +868,58 @@ export default function MVPPage() {
                 </div>
               ))}
             </div>
+
+            {jobs.length > footerJobsPageSize && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 14 }}>
+                <button
+                  type="button"
+                  onClick={() => setFooterJobsPage((currentPage) => Math.max(0, currentPage - 1))}
+                  disabled={footerJobsPage === 0}
+                  aria-label="Vacantes anteriores"
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 999,
+                    border: "1px solid #333",
+                    backgroundColor: footerJobsPage === 0 ? "#0f172a" : "#111827",
+                    color: footerJobsPage === 0 ? "#475569" : "#fff",
+                    cursor: footerJobsPage === 0 ? "not-allowed" : "pointer",
+                    display: "grid",
+                    placeItems: "center",
+                    fontSize: 18,
+                    fontWeight: 800,
+                  }}
+                >
+                  ←
+                </button>
+
+                <div style={{ color: "#9ca3af", fontSize: 12, fontWeight: 600 }}>
+                  {footerJobsPage + 1} / {footerJobsPageCount}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setFooterJobsPage((currentPage) => Math.min(footerJobsPageCount - 1, currentPage + 1))}
+                  disabled={footerJobsPage >= footerJobsPageCount - 1}
+                  aria-label="Siguientes vacantes"
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 999,
+                    border: "1px solid #333",
+                    backgroundColor: footerJobsPage >= footerJobsPageCount - 1 ? "#0f172a" : "#111827",
+                    color: footerJobsPage >= footerJobsPageCount - 1 ? "#475569" : "#fff",
+                    cursor: footerJobsPage >= footerJobsPageCount - 1 ? "not-allowed" : "pointer",
+                    display: "grid",
+                    placeItems: "center",
+                    fontSize: 18,
+                    fontWeight: 800,
+                  }}
+                >
+                  →
+                </button>
+              </div>
+            )}
           </section>
         </div>
 
