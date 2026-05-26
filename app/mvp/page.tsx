@@ -84,14 +84,14 @@ export default function MVPPage() {
       });
 
       if (res.ok) {
-        alert("¡Perfil creado!");
+        setToast({ message: "Perfil creado correctamente.", variant: "success" });
         window.location.reload(); // Recarga para ver el nuevo perfil en la lista
       } else {
         const err = await res.json();
-        alert("Error: " + err.error);
+        setToast({ message: `Error: ${err.error}`, variant: "error" });
       }
     } catch (error) {
-      alert("Error de conexión");
+      setToast({ message: "Error de conexión.", variant: "error" });
     }
   };
 
@@ -273,14 +273,14 @@ export default function MVPPage() {
 
       if (!res.ok) {
         const err = await res.json();
-        alert(err.error ?? "Error aplicando");
+        setToast({ message: err.error ?? "Error aplicando.", variant: "error" });
         return;
       }
 
-      alert("Aplicación registrada ✅");
+      setToast({ message: "Aplicación registrada.", variant: "success" });
 
     } catch (e) {
-      alert("Error aplicando");
+      setToast({ message: "Error aplicando.", variant: "error" });
     }
   }}
   style={{
@@ -366,6 +366,7 @@ export default function MVPPage() {
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Toast } from "../components/toast";
 
 type Preference = { modality: string; salaryExpect: number; mustHave: string[]; niceToHave: string[]; };
 type Profile = { id: string; fullName: string; email: string; location: string; targetRole: string; yearsExp: number; skills: string[]; preference?: Preference; };
@@ -380,6 +381,20 @@ export default function MVPPage() {
   const [error, setError] = useState<string>("");
   const [recs, setRecs] = useState<Recommendation[]>([]);
   const [recsLoading, setRecsLoading] = useState(false);
+  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; variant: "success" | "error" | "info" } | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    setSessionUserId(window.localStorage.getItem("jobmaxxing_user"));
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 3200);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
   useEffect(() => {
     async function load() {
@@ -405,7 +420,8 @@ export default function MVPPage() {
   }, []);
 
   return (
-    <main style={{ padding: "40px 24px", fontFamily: "system-ui", backgroundColor: "#0a0a0a", color: "#ededed", minHeight: "100vh" }}>
+    <main style={{ padding: "40px 24px", fontFamily: "system-ui", backgroundColor: "#0a0a0a", color: "#ededed", minHeight: "100vh", position: "relative" }}>
+      {toast && <Toast message={toast.message} variant={toast.variant} onClose={() => setToast(null)} />}
       
       {/* HEADER */}
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 48, maxWidth: "1200px", margin: "0 auto 48px auto" }}>
@@ -416,18 +432,38 @@ export default function MVPPage() {
           <p style={{ opacity: 0.5, marginTop: 4, fontSize: 14 }}>Dashboard de Optimización • v1.0</p>
         </div>
         
-        <div style={{ display: "flex", gap: 12 }}>
-          <Link href="/login">
-            <button style={{ padding: "10px 24px", borderRadius: 12, border: "1px solid #333", backgroundColor: "transparent", color: "#fff", cursor: "pointer", fontWeight: 600, transition: "0.2s" }}>
-              Login
+        {sessionUserId ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ padding: "10px 16px", borderRadius: 999, border: "1px solid #222", backgroundColor: "#141414", color: "#dbeafe", fontSize: 14, fontWeight: 700 }}>
+              Sesión activa
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                window.localStorage.removeItem("jobmaxxing_user");
+                setSessionUserId(null);
+                setToast({ message: "Sesión cerrada.", variant: "info" });
+                window.location.href = "/login";
+              }}
+              style={{ padding: "10px 24px", borderRadius: 12, border: "1px solid #333", backgroundColor: "transparent", color: "#fff", cursor: "pointer", fontWeight: 600, transition: "0.2s" }}
+            >
+              Cerrar sesión
             </button>
-          </Link>
-          <Link href="/register">
-            <button style={{ padding: "10px 24px", borderRadius: 12, border: "none", backgroundColor: "#3b82f6", color: "white", cursor: "pointer", fontWeight: 700, transition: "0.2s" }}>
-              Register
-            </button>
-          </Link>
-        </div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: 12 }}>
+            <Link href="/login">
+              <button style={{ padding: "10px 24px", borderRadius: 12, border: "1px solid #333", backgroundColor: "transparent", color: "#fff", cursor: "pointer", fontWeight: 600, transition: "0.2s" }}>
+                Login
+              </button>
+            </Link>
+            <Link href="/register">
+              <button style={{ padding: "10px 24px", borderRadius: 12, border: "none", backgroundColor: "#3b82f6", color: "white", cursor: "pointer", fontWeight: 700, transition: "0.2s" }}>
+                Register
+              </button>
+            </Link>
+          </div>
+        )}
       </header>
 
       <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
@@ -450,14 +486,17 @@ export default function MVPPage() {
 
           <button
             onClick={async () => {
-              if (!selectedProfileId) return alert("Selecciona un perfil");
+              if (!selectedProfileId) {
+                setToast({ message: "Selecciona un perfil.", variant: "error" });
+                return;
+              }
               try {
                 setRecsLoading(true);
                 const res = await fetch(`/api/recomendaciones?profileId=${selectedProfileId}`);
                 const data = await res.json();
                 setRecs(data.recommendations);
               } catch (e) {
-                alert("Error generando recomendaciones");
+                setToast({ message: "Error generando recomendaciones.", variant: "error" });
               } finally {
                 setRecsLoading(false);
               }

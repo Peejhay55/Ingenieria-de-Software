@@ -1,14 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Toast } from "../components/toast";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{ message: string; variant: "success" | "error" | "info" } | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const authenticatedUser = window.localStorage.getItem("jobmaxxing_user");
+    if (authenticatedUser) {
+      router.replace("/mvp");
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 3200);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,20 +43,21 @@ export default function LoginPage() {
       if (res.ok) {
         // Por ahora guardamos el ID en localStorage para saber quién entró
         localStorage.setItem("jobmaxxing_user", data.userId);
-        alert("¡Bienvenido de nuevo a JobMaxxing!");
+        setToast({ message: "Bienvenido de nuevo a JobMaxxing.", variant: "success" });
         router.push("/mvp"); // Te manda al dashboard
       } else {
-        alert(data.error || "Credenciales incorrectas");
+        setToast({ message: data.error || "Credenciales incorrectas.", variant: "error" });
       }
     } catch (error) {
-      alert("Error de conexión");
+      setToast({ message: "Error de conexión.", variant: "error" });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#0a0a0a", color: "#fff", fontFamily: "system-ui" }}>
+    <main style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#0a0a0a", color: "#fff", fontFamily: "system-ui", position: "relative" }}>
+      {toast && <Toast message={toast.message} variant={toast.variant} onClose={() => setToast(null)} />}
       <div style={{ width: "100%", maxWidth: "400px", padding: "40px", backgroundColor: "#141414", borderRadius: "24px", border: "1px solid #222" }}>
         <h2 style={{ fontSize: "28px", fontWeight: 800, marginBottom: "8px", textAlign: "center" }}>Iniciar Sesión</h2>
         <p style={{ opacity: 0.5, textAlign: "center", marginBottom: "32px" }}>Accede a tu panel de JobMaxxing</p>
