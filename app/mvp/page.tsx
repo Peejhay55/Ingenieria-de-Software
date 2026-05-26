@@ -364,7 +364,7 @@ export default function MVPPage() {
 */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Toast } from "../components/toast";
 
@@ -372,6 +372,8 @@ type Preference = { modality: string; salaryExpect: number; mustHave: string[]; 
 type Profile = { id: string; fullName: string; email: string; location: string; targetRole: string; yearsExp: number; skills: string[]; preference?: Preference; };
 type Job = { id: string; title: string; company: string; location: string; modality: string; salaryMin: number; salaryMax: number; skills: string[]; };
 type Recommendation = { job: Job; score: number; breakdown: { skillsScore: number; niceScore: number; modalityScore: number; salaryScore: number; mustHavePenalty: number; matchedSkills: number; }; };
+
+const savedVacanciesStorageKey = "jobmaxxing_saved_vacancies";
 
 export default function MVPPage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -382,7 +384,11 @@ export default function MVPPage() {
   const [recs, setRecs] = useState<Recommendation[]>([]);
   const [recsLoading, setRecsLoading] = useState(false);
   const [sessionUserId, setSessionUserId] = useState<string | null>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [savedJobs, setSavedJobs] = useState<Job[]>([]);
+  const [savedJobsLoaded, setSavedJobsLoaded] = useState(false);
   const [toast, setToast] = useState<{ message: string; variant: "success" | "error" | "info" } | null>(null);
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -395,6 +401,68 @@ export default function MVPPage() {
     const timer = window.setTimeout(() => setToast(null), 3200);
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const rawSavedJobs = window.localStorage.getItem(savedVacanciesStorageKey);
+      setSavedJobs(rawSavedJobs ? (JSON.parse(rawSavedJobs) as Job[]) : []);
+    } catch {
+      setSavedJobs([]);
+    } finally {
+      setSavedJobsLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!savedJobsLoaded || typeof window === "undefined") return;
+    window.localStorage.setItem(savedVacanciesStorageKey, JSON.stringify(savedJobs));
+  }, [savedJobs, savedJobsLoaded]);
+
+  useEffect(() => {
+    function handleDocumentClick(event: MouseEvent) {
+      if (!userMenuRef.current?.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+
+    function handleEscapeKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setUserMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleDocumentClick);
+    document.addEventListener("keydown", handleEscapeKey);
+
+    return () => {
+      document.removeEventListener("mousedown", handleDocumentClick);
+      document.removeEventListener("keydown", handleEscapeKey);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    window.localStorage.removeItem("jobmaxxing_user");
+    setSessionUserId(null);
+    setUserMenuOpen(false);
+    setToast({ message: "Sesión cerrada.", variant: "info" });
+    window.location.href = "/login";
+  };
+
+  const isJobSaved = (jobId: string) => savedJobs.some((job) => job.id === jobId);
+
+  const toggleSavedJob = (job: Job) => {
+    setSavedJobs((currentJobs) => {
+      if (currentJobs.some((savedJob) => savedJob.id === job.id)) {
+        setToast({ message: "Vacante quitada de guardadas.", variant: "info" });
+        return currentJobs.filter((savedJob) => savedJob.id !== job.id);
+      }
+
+      setToast({ message: "Vacante guardada.", variant: "success" });
+      return [job, ...currentJobs];
+    });
+  };
 
   useEffect(() => {
     async function load() {
@@ -433,22 +501,74 @@ export default function MVPPage() {
         </div>
         
         {sessionUserId ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ padding: "10px 16px", borderRadius: 999, border: "1px solid #222", backgroundColor: "#141414", color: "#dbeafe", fontSize: 14, fontWeight: 700 }}>
-              Sesión activa
-            </div>
+          <div ref={userMenuRef} style={{ position: "relative" }}>
             <button
               type="button"
-              onClick={() => {
-                window.localStorage.removeItem("jobmaxxing_user");
-                setSessionUserId(null);
-                setToast({ message: "Sesión cerrada.", variant: "info" });
-                window.location.href = "/login";
+              onClick={() => setUserMenuOpen((open) => !open)}
+              aria-haspopup="menu"
+              aria-expanded={userMenuOpen}
+              aria-label="Abrir menú de usuario"
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: "999px",
+                border: "1px solid #333",
+                background: "linear-gradient(135deg, #1f2937, #0f172a)",
+                color: "#fff",
+                cursor: "pointer",
+                display: "grid",
+                placeItems: "center",
+                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.25)",
               }}
-              style={{ padding: "10px 24px", borderRadius: 12, border: "1px solid #333", backgroundColor: "transparent", color: "#fff", cursor: "pointer", fontWeight: 600, transition: "0.2s" }}
             >
-              Cerrar sesión
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 20c1.9-3.5 5.1-5 8-5s6.1 1.5 8 5" />
+              </svg>
             </button>
+
+            {userMenuOpen && (
+              <div
+                role="menu"
+                aria-label="Menú de usuario"
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 12px)",
+                  right: 0,
+                  minWidth: 200,
+                  padding: 8,
+                  borderRadius: 16,
+                  border: "1px solid #222",
+                  backgroundColor: "#0f0f10",
+                  boxShadow: "0 20px 40px rgba(0, 0, 0, 0.35)",
+                  zIndex: 20,
+                }}
+              >
+                <Link href="/ajustes" onClick={() => setUserMenuOpen(false)} style={{ display: "block", padding: "12px 14px", borderRadius: 12, color: "#ededed", textDecoration: "none", fontWeight: 600 }}>
+                  Ajustes
+                </Link>
+                <Link href="/vacantes-guardadas" onClick={() => setUserMenuOpen(false)} style={{ display: "block", padding: "12px 14px", borderRadius: 12, color: "#ededed", textDecoration: "none", fontWeight: 600 }}>
+                  Vacantes guardadas
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  style={{
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "12px 14px",
+                    borderRadius: 12,
+                    border: "none",
+                    backgroundColor: "transparent",
+                    color: "#fb7185",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                  }}
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div style={{ display: "flex", gap: 12 }}>
@@ -534,6 +654,77 @@ export default function MVPPage() {
           </section>
         )}
 
+        <section style={{ marginBottom: 48 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, gap: 16, flexWrap: "wrap" }}>
+            <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0, color: "#fff" }}>Vacantes disponibles</h2>
+            <div style={{ color: "#9ca3af", fontSize: 14 }}>
+              Guardadas: {savedJobs.length}
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gap: 16 }}>
+            {jobs.length === 0 ? (
+              <p style={{ color: "#9ca3af" }}>No hay vacantes para mostrar.</p>
+            ) : (
+              jobs.map((job) => {
+                const saved = isJobSaved(job.id);
+
+                return (
+                  <article
+                    key={job.id}
+                    style={{
+                      backgroundColor: "#141414",
+                      border: "1px solid #222",
+                      borderRadius: 20,
+                      padding: 24,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      gap: 20,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: "#fff" }}>{job.title}</div>
+                      <div style={{ color: "#3b82f6", fontWeight: 600, marginBottom: 8 }}>{job.company}</div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 12, padding: "4px 8px", backgroundColor: "#222", borderRadius: 6, color: "#aaa" }}>{job.modality}</span>
+                        <span style={{ fontSize: 12, padding: "4px 8px", backgroundColor: "#222", borderRadius: 6, color: "#aaa" }}>{job.location}</span>
+                        <span style={{ fontSize: 12, padding: "4px 8px", backgroundColor: "#222", borderRadius: 6, color: "#aaa" }}>${job.salaryMin} - ${job.salaryMax}</span>
+                      </div>
+                      <p style={{ marginTop: 12, marginBottom: 0, color: "#9ca3af", fontSize: 13 }}>
+                        Skills: {job.skills.join(", ")}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => toggleSavedJob(job)}
+                      aria-label={saved ? "Quitar vacante guardada" : "Guardar vacante"}
+                      aria-pressed={saved}
+                      style={{
+                        width: 46,
+                        height: 46,
+                        borderRadius: 999,
+                        border: "1px solid " + (saved ? "#ef4444" : "#333"),
+                        backgroundColor: saved ? "rgba(239, 68, 68, 0.14)" : "#0b0b0b",
+                        color: saved ? "#ef4444" : "#9ca3af",
+                        cursor: "pointer",
+                        display: "grid",
+                        placeItems: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <svg viewBox="0 0 24 24" width="22" height="22" fill={saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M12 21s-7-4.5-9.5-9A5.9 5.9 0 0 1 12 5a5.9 5.9 0 0 1 9.5 7c-2.5 4.5-9.5 9-9.5 9Z" />
+                      </svg>
+                    </button>
+                  </article>
+                );
+              })
+            )}
+          </div>
+        </section>
+
         {/* DATA INSPECTOR (FOOTER) */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, opacity: 0.6, borderTop: "1px solid #222", paddingTop: 32 }}>
           <section>
@@ -550,8 +741,32 @@ export default function MVPPage() {
             <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, color: "#3b82f6" }}>Database: Vacantes</h3>
             <div style={{ display: "grid", gap: 10 }}>
               {jobs.map(j => (
-                <div key={j.id} style={{ padding: "10px", borderRadius: 10, backgroundColor: "#141414", fontSize: 13, border: "1px solid #222" }}>
-                  <strong>{j.title}</strong> • <span style={{ color: "#888" }}>{j.company}</span>
+                <div key={j.id} style={{ padding: "10px", borderRadius: 10, backgroundColor: "#141414", fontSize: 13, border: "1px solid #222", display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                  <div>
+                    <strong>{j.title}</strong> • <span style={{ color: "#888" }}>{j.company}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleSavedJob(j)}
+                    aria-label={isJobSaved(j.id) ? "Quitar vacante guardada" : "Guardar vacante"}
+                    aria-pressed={isJobSaved(j.id)}
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 999,
+                      border: "1px solid " + (isJobSaved(j.id) ? "#ef4444" : "#333"),
+                      backgroundColor: isJobSaved(j.id) ? "rgba(239, 68, 68, 0.14)" : "#0b0b0b",
+                      color: isJobSaved(j.id) ? "#ef4444" : "#9ca3af",
+                      cursor: "pointer",
+                      display: "grid",
+                      placeItems: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill={isJobSaved(j.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M12 21s-7-4.5-9.5-9A5.9 5.9 0 0 1 12 5a5.9 5.9 0 0 1 9.5 7c-2.5 4.5-9.5 9-9.5 9Z" />
+                    </svg>
+                  </button>
                 </div>
               ))}
             </div>
